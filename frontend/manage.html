@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Switch Actuator</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="manage" id="body">
+    <div class="control-buttons">
+        <h1>Actuator<span>: Management</span></h1>
+        <button id="add-btn">+ Add Switch</button>
+        <button id="close-btn">X</button>
+    </div>
+    <ul id="manage-switches"></ul>
+</body>
+<script type="text/javascript">
+    API_BASE_URL = '/api'
+    fetch(`${API_BASE_URL}/switches`)
+    .then((response) => response.json())
+    .then((switches) => {
+
+        const renderMain = switches => {
+            document.getElementById('manage-switches').innerHTML = ''
+            switches.forEach(addSwitch)
+        }
+
+        const addSwitch = switchItem => {
+            switchEl = document.createElement('li')
+                switchEl.setAttribute('id', 'switch-' + switchItem.id)
+                switchEl.setAttribute('class', 'switch')
+                switchEl.setAttribute('data-item-id', switchItem.id)
+
+                switchNameEl = document.createElement('input')
+                switchNameEl.setAttribute('type', 'text')
+                switchNameEl.setAttribute('class', 'name')
+                switchNameEl.setAttribute('value', switchItem.name)
+
+                switchKeycodeEl = document.createElement('input')
+                switchKeycodeEl.setAttribute('type', 'text')
+                switchKeycodeEl.setAttribute('class', 'keycode')
+                switchKeycodeEl.setAttribute('value', switchItem.keycode)
+
+                switchDeleteEl = document.createElement('button')
+                switchDeleteEl.setAttribute('class', 'delete')
+                switchDeleteEl.innerHTML = 'Delete'
+
+                orderButtonsWrapEl = document.createElement('div')
+                orderButtonsWrapEl.setAttribute('class', 'order-buttons')
+
+                upButtonEl = document.createElement('button')
+                upButtonEl.setAttribute('class', 'order-up')
+                upButtonEl.innerHTML = '⬆️'
+
+                downButtonEl = document.createElement('button')
+                downButtonEl.setAttribute('class', 'order-down')
+                downButtonEl.innerHTML = '⬇️'
+
+                orderButtonsWrapEl.append(upButtonEl)
+                orderButtonsWrapEl.append(downButtonEl)
+
+                switchEl.append(switchNameEl)
+                switchEl.append(switchKeycodeEl)
+                switchEl.append(orderButtonsWrapEl)
+                switchEl.append(switchDeleteEl)
+                
+                upButtonEl.addEventListener('click', () => moveUp(document.getElementById('switch-' + switchItem.id)))
+                downButtonEl.addEventListener('click', () => moveDown(document.getElementById('switch-' + switchItem.id)))
+                switchDeleteEl.addEventListener('click', () => deleteSwitch(document.querySelector('#switch-' + switchItem.id)))
+                switchNameEl.addEventListener('blur', () => saveSwitches())
+                switchKeycodeEl.addEventListener('blur', () => saveSwitches())
+
+                document.getElementById('manage-switches').append(switchEl)
+        }
+
+        const moveUp = el => {
+            if (el.previousSibling) {
+                document.getElementById('manage-switches').insertBefore(el, el.previousSibling)
+                saveSwitches()
+            }
+        }
+        const moveDown = el => {
+            if (el.nextSibling) {
+                document.getElementById('manage-switches').insertBefore(el, el.nextSibling.nextSibling)
+                saveSwitches()
+            }
+        }
+        const deleteSwitch = el => {
+            el.remove()
+            saveSwitches()
+        }
+        const addNewSwitch = () => {
+            newSwitchId = uuidv4()
+            addSwitch({
+                id: newSwitchId,
+                name: "New Switch",
+                keycode: "Keycode",
+            })
+            document.querySelector('#switch-' + newSwitchId).setAttribute('class', 'switch new-switch')
+            document.querySelector('#switch-' + newSwitchId + ' input.name').addEventListener('blur', event => event.target.parentNode.setAttribute('class', 'switch'))
+            document.querySelector('#switch-' + newSwitchId + ' input.keycode').addEventListener('blur', event => event.target.parentNode.setAttribute('class', 'switch'))
+        }
+
+        const saveSwitches = () => {
+            document.querySelector('#body').setAttribute('class', 'manage saving')
+            payload = {
+                switches: 
+                Array.from(document.getElementsByClassName('switch')).map(switchEl => {
+                    switchId = switchEl.getAttribute('data-item-id')
+                    return {
+                        id: switchId,
+                        name: document.querySelector('#switch-' + switchId + ' input.name').value,
+                        keycode: document.querySelector('#switch-' + switchId + ' input.keycode').value,
+                    }
+                })
+            }
+            console.log(payload)
+            fetch(`${API_BASE_URL}/switches`, {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache', 
+                credentials: 'same-origin', 
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            }).then(() => document.querySelector('#body').setAttribute('class', 'manage'))
+        }
+        const uuidv4 = () => {
+            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        }
+
+        
+        document.getElementById('add-btn').addEventListener('click', addNewSwitch)
+        document.getElementById('close-btn').addEventListener('click', () => window.location.href = '/')
+
+        renderMain(switches)
+    })
+</script>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Switch Actuator</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="control-buttons">
+        <h1>Actuator</h1>
+        <button id="manage-btn">🔧</button>
+    </div>
+    <div class="container" id="switches">
+    </div>
+</body>
+<script type="text/javascript">
+    API_BASE_URL = '/api' 
+    fetch(`${API_BASE_URL}/switches`)
+    .then((response) => response.json())
+    .then((switches) => {
+        const renderMain = switches => {
+            document.getElementById('switches').innerHTML = ''
+            switches.forEach(switchItem => {
+                switchEl = document.createElement('button')
+                switchEl.setAttribute('id', switchItem.id)
+                switchEl.setAttribute('class', 'switch')
+                switchEl.setAttribute('data-item-id', switchItem.id)
+                switchEl.innerHTML = switchItem.name
+                
+                switchEl.addEventListener('click', () => {
+                    fetch(`${API_BASE_URL}/switch/${switchItem.id}`).then(response => console.log(response))
+                })
+
+                document.getElementById("switches").append(switchEl)
+            })
+        }
+
+        document.getElementById('manage-btn').addEventListener('click', () => window.location.href = '/manage.html')
+
+        renderMain(switches)
+    })
+</script>
+</html>
