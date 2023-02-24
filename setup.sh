@@ -15,6 +15,7 @@ sudo cat<<EOF > /etc/rc.local
 #!/usr/bin/env bash
 /home/pi/acutator/rpi-hid.sh
 chmod 777 /dev/hidg0
+cd /home/pi/acutator && node /home/pi/acutator/app.js
 exit 0
 EOF
 sudo chmod 755 /etc/rc.local
