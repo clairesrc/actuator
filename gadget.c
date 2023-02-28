@@ -258,7 +258,7 @@ int main(int argc, const char *argv[])
 		return 3;
 	}
 
-	while (42) {
+	while (1) {
 
 		FD_ZERO(&rfds);
 		FD_SET(STDIN_FILENO, &rfds);
