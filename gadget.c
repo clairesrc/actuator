@@ -216,132 +216,18 @@ int keyboard_fill_report(char report[8], char buf[BUF_LEN], int *hold)
 	return 8;
 }
 
-static struct options mmod[] = {
-	{.opt = "--b1", .val = 0x01},
-	{.opt = "--b2", .val = 0x02},
-	{.opt = "--b3", .val = 0x04},
-	{.opt = NULL}
-};
-
-int mouse_fill_report(char report[8], char buf[BUF_LEN], int *hold)
-{
-	char *tok = strtok(buf, " ");
-	int mvt = 0;
-	int i = 0;
-	for (; tok != NULL; tok = strtok(NULL, " ")) {
-
-		if (strcmp(tok, "--quit") == 0)
-			return -1;
-
-		if (strcmp(tok, "--hold") == 0) {
-			*hold = 1;
-			continue;
-		}
-
-		for (i = 0; mmod[i].opt != NULL; i++)
-			if (strcmp(tok, mmod[i].opt) == 0) {
-				report[0] = report[0] | mmod[i].val;
-				break;
-			}
-		if (mmod[i].opt != NULL)
-			continue;
-
-		if (!(tok[0] == '-' && tok[1] == '-') && mvt < 2) {
-			errno = 0;
-			report[1 + mvt++] = (char)strtol(tok, NULL, 0);
-			if (errno != 0) {
-				fprintf(stderr, "Bad value:'%s'\n", tok);
-				report[1 + mvt--] = 0;
-			}
-			continue;
-		}
-
-		fprintf(stderr, "unknown option: %s\n", tok);
-	}
-	return 3;
-}
-
-static struct options jmod[] = {
-	{.opt = "--b1",		.val = 0x10},
-	{.opt = "--b2",		.val = 0x20},
-	{.opt = "--b3",		.val = 0x40},
-	{.opt = "--b4",		.val = 0x80},
-	{.opt = "--hat1",	.val = 0x00},
-	{.opt = "--hat2",	.val = 0x01},
-	{.opt = "--hat3",	.val = 0x02},
-	{.opt = "--hat4",	.val = 0x03},
-	{.opt = "--hatneutral",	.val = 0x04},
-	{.opt = NULL}
-};
-
-int joystick_fill_report(char report[8], char buf[BUF_LEN], int *hold)
-{
-	char *tok = strtok(buf, " ");
-	int mvt = 0;
-	int i = 0;
-
-	*hold = 1;
-
-	/* set default hat position: neutral */
-	report[3] = 0x04;
-
-	for (; tok != NULL; tok = strtok(NULL, " ")) {
-
-		if (strcmp(tok, "--quit") == 0)
-			return -1;
-
-		for (i = 0; jmod[i].opt != NULL; i++)
-			if (strcmp(tok, jmod[i].opt) == 0) {
-				report[3] = (report[3] & 0xF0) | jmod[i].val;
-				break;
-			}
-		if (jmod[i].opt != NULL)
-			continue;
-
-		if (!(tok[0] == '-' && tok[1] == '-') && mvt < 3) {
-			errno = 0;
-			report[mvt++] = (char)strtol(tok, NULL, 0);
-			if (errno != 0) {
-				fprintf(stderr, "Bad value:'%s'\n", tok);
-				report[mvt--] = 0;
-			}
-			continue;
-		}
-
-		fprintf(stderr, "unknown option: %s\n", tok);
-	}
-	return 4;
-}
-
-void print_options(char c)
+void print_options()
 {
 	int i = 0;
-
-	if (c == 'k') {
-		printf("	keyboard options:\n"
-		       "		hold\n");
-		for (i = 0; kmod[i].opt != NULL; i++)
-			printf("\t\t%s\n", kmod[i].opt);
-		printf("\n	keyboard values:\n"
-		       "		[a-z] or [0-9] or\n");
-		for (i = 0; kval[i].opt != NULL; i++)
-			printf("\t\t%-8s%s", kval[i].opt, i % 2 ? "\n" : "");
-		printf("\n");
-	} else if (c == 'm') {
-		printf("	mouse options:\n"
-		       "		--hold\n");
-		for (i = 0; mmod[i].opt != NULL; i++)
-			printf("\t\t%s\n", mmod[i].opt);
-		printf("\n	mouse values:\n"
-		       "		Two signed numbers\n\n");
-	} else {
-		printf("	joystick options:\n");
-		for (i = 0; jmod[i].opt != NULL; i++)
-			printf("\t\t%s\n", jmod[i].opt);
-		printf("\n	joystick values:\n"
-		       "		three signed numbers\n"
-		       "--quit to close\n");
-	}
+	printf("	keyboard options:\n"
+			"		hold\n");
+	for (i = 0; kmod[i].opt != NULL; i++)
+		printf("\t\t%s\n", kmod[i].opt);
+	printf("\n	keyboard values:\n"
+			"		[a-z] or [0-9] or\n");
+	for (i = 0; kval[i].opt != NULL; i++)
+		printf("\t\t%-8s%s", kval[i].opt, i % 2 ? "\n" : "");
+	printf("\n");
 }
 
 int main(int argc, const char *argv[])
@@ -356,19 +242,14 @@ int main(int argc, const char *argv[])
 	fd_set rfds;
 	int retval, i;
 
-	if (argc < 3) {
-		fprintf(stderr, "Usage: %s devname mouse|keyboard|joystick\n",
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s devname\n",
 			argv[0]);
 
-		print_options('k');
-		print_options('m');
-		print_options('j');
+		print_options();
 
 		return 1;
 	}
-
-	if (argv[2][0] != 'k' && argv[2][0] != 'm' && argv[2][0] != 'j')
-	  return 2;
 
 	filename = argv[1];
 
@@ -410,12 +291,7 @@ int main(int argc, const char *argv[])
 			hold = 0;
 
 			memset(report, 0x0, sizeof(report));
-			if (argv[2][0] == 'k')
-				to_send = keyboard_fill_report(report, buf, &hold);
-			else if (argv[2][0] == 'm')
-				to_send = mouse_fill_report(report, buf, &hold);
-			else
-				to_send = joystick_fill_report(report, buf, &hold);
+			to_send = keyboard_fill_report(report, buf, &hold);
 
 			if (to_send == -1)
 				break;
